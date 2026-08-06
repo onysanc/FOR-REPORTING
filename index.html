@@ -4292,7 +4292,7 @@ function computeBulletinEntries(groupKey) {
     // the plain average of that score across every task batch they completed,
     // e.g. one task at 100% and a second at 80% averages to 90%.
     const speedPct = averageSpeedPctForLogs(completed);
-    const productivityPct = (activeHours / STANDARD_DAILY_HOURS) * 100;
+    const productivityPct = (Math.min(activeMinutes, 1440) / 60 / STANDARD_DAILY_HOURS) * 100;
     const hasActivity = logs.length > 0;
 
     // Accuracy: volume-weighted across whichever of this person's roles are
@@ -4520,7 +4520,7 @@ function computeGroupDayMetrics(dayLogsAll, groupKey, groupRoles) {
   groupLogs.forEach(l => { const k = l.personnel_name || '—'; (byPerson[k] = byPerson[k] || []).push(l); });
   const prodPcts = Object.values(byPerson).map(personLogs => {
     const mins = sumGroupMinutes(personLogs);
-    return mins > 0 ? (mins / 60 / STANDARD_DAILY_HOURS) * 100 : 0;
+    return mins > 0 ? (Math.min(mins, 1440) / 60 / STANDARD_DAILY_HOURS) * 100 : 0;
   }).filter(p => p > 0);
   const productivityPct = prodPcts.length ? prodPcts.reduce((s, p) => s + p, 0) / prodPcts.length : null;
 
@@ -4839,7 +4839,12 @@ function renderLeaderboard(logs) {
     const entriesByDay = {};
     entries.forEach(l => { const d = operationalDayBucketStr(l.start_time); (entriesByDay[d] = entriesByDay[d] || []).push(l); });
     const dayKeys = Object.keys(entriesByDay);
-    const dailyProdPcts = dayKeys.map(d => (sumGroupMinutes(entriesByDay[d]) / 60 / STANDARD_DAILY_HOURS) * 100);
+    // Sanity cap: a single Activity Day only has 1,440 minutes on the clock,
+    // so raw minutes logged for that day can never legitimately exceed that —
+    // anything higher (the 497% case reported) is duplicate/overlapping log
+    // rows for the same task being summed more than once, not real overtime.
+    // Clamp before turning it into a percentage (same fix as Role Leaderboards).
+    const dailyProdPcts = dayKeys.map(d => (Math.min(sumGroupMinutes(entriesByDay[d]), 1440) / 60 / STANDARD_DAILY_HOURS) * 100);
     const productivityPct = dayKeys.length ? dailyProdPcts.reduce((s, v) => s + v, 0) / dayKeys.length : 0;
     return { name, roles, volume, activeMinutes, productivityPct };
   }).filter(r => r.activeMinutes > 0).sort((a, b) => b.productivityPct - a.productivityPct).slice(0, 10);
@@ -8527,7 +8532,7 @@ async function renderLeaderboardChart(dateStr) {
   if (error) return;
   const byPersonnel = {};
   (data || []).filter(l => !excludedPersonnelNames.has((l.personnel_name || '').trim())).forEach(l => { const k = l.personnel_name || '—'; (byPersonnel[k] = byPersonnel[k] || []).push(l); });
-  const rows = Object.entries(byPersonnel).map(([name, logs]) => { const mins = sumGroupMinutes(logs); return { name, pct: mins > 0 ? (mins / 60 / STANDARD_DAILY_HOURS) * 100 : 0 }; })
+  const rows = Object.entries(byPersonnel).map(([name, logs]) => { const mins = sumGroupMinutes(logs); return { name, pct: mins > 0 ? (Math.min(mins, 1440) / 60 / STANDARD_DAILY_HOURS) * 100 : 0 }; })
     .filter(r => r.pct > 0).sort((a, b) => b.pct - a.pct).slice(0, 8);
   upsertChart('leaderboard-chart', {
     type: 'bar',
