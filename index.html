@@ -1105,11 +1105,24 @@
           <h4 class="text-xs font-bold text-green-400 uppercase tracking-wider">🧺 Picking Operations Rankings <span class="text-slate-500 font-normal normal-case">(Picker + Puller)</span></h4>
           <div class="flex items-center gap-2">
             <button onclick="captureElementAsImage('lb-pickgroup-capture', 'picking-operations-rankings')" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">📷 Capture Image</button>
+            <button onclick="toggleRoleLeaderboardTrend('PICK_GROUP')" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">📈 Monthly Trend</button>
             <label class="text-[10px] text-slate-500 font-semibold">Sort by</label>
             <select onchange="setRoleLeaderboardSort('PICK_GROUP', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-emerald-500">
               <option value="speed">Speed %</option><option value="qty">Qty</option><option value="productivity">Productivity</option><option value="idle">Idle</option>
             </select>
           </div>
+        </div>
+        <div id="lb-pickgroup-trend-wrap" class="hidden border border-slate-800 rounded-lg bg-slate-900/40 p-3 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-[10px] text-slate-500 font-semibold">Top 5 currently-ranked personnel, by month, for the year in "As of" (defaults to this year)</span>
+            <div class="flex items-center gap-1.5">
+              <label class="text-[10px] text-slate-500 font-semibold">Metric</label>
+              <select id="lb-pickgroup-trend-metric" onchange="renderRoleLeaderboardTrend('PICK_GROUP')" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-emerald-500">
+                <option value="productivityPct">Productivity %</option><option value="qty">Qty</option><option value="avgSpeedPct">Speed %</option><option value="idlePct">Idle %</option>
+              </select>
+            </div>
+          </div>
+          <div style="height:220px"><canvas id="lb-pickgroup-trend-chart"></canvas></div>
         </div>
         <div id="lb-pickgroup-capture">
         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950">
@@ -1138,11 +1151,24 @@
           <h4 class="text-xs font-bold text-sky-300 uppercase tracking-wider">🧾 Checking Operations Rankings <span class="text-slate-500 font-normal normal-case">(Staging Checker + Outbound Checker)</span></h4>
           <div class="flex items-center gap-2">
             <button onclick="captureElementAsImage('lb-checkgroup-capture', 'checking-operations-rankings')" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">📷 Capture Image</button>
+            <button onclick="toggleRoleLeaderboardTrend('CHECK_GROUP')" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">📈 Monthly Trend</button>
             <label class="text-[10px] text-slate-500 font-semibold">Sort by</label>
             <select onchange="setRoleLeaderboardSort('CHECK_GROUP', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-emerald-500">
               <option value="speed">Speed %</option><option value="qty">Qty</option><option value="productivity">Productivity</option><option value="idle">Idle</option>
             </select>
           </div>
+        </div>
+        <div id="lb-checkgroup-trend-wrap" class="hidden border border-slate-800 rounded-lg bg-slate-900/40 p-3 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-[10px] text-slate-500 font-semibold">Top 5 currently-ranked personnel, by month, for the year in "As of" (defaults to this year)</span>
+            <div class="flex items-center gap-1.5">
+              <label class="text-[10px] text-slate-500 font-semibold">Metric</label>
+              <select id="lb-checkgroup-trend-metric" onchange="renderRoleLeaderboardTrend('CHECK_GROUP')" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-emerald-500">
+                <option value="productivityPct">Productivity %</option><option value="qty">Qty</option><option value="avgSpeedPct">Speed %</option><option value="idlePct">Idle %</option>
+              </select>
+            </div>
+          </div>
+          <div style="height:220px"><canvas id="lb-checkgroup-trend-chart"></canvas></div>
         </div>
         <div id="lb-checkgroup-capture">
         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950">
@@ -5222,12 +5248,15 @@ function renderIdleTimeOfDayAnalysis(groupKey, timeOfDay) {
     </div>`;
 }
 
+const ROLE_LEADERBOARD_LAST_ROWS = {}; // groupKey -> currently-displayed sorted rows (feeds Monthly Trend chart's top-N)
+
 function renderRoleLeaderboard(groupKey, dayLogs) {
   const tbody = document.getElementById(ROLE_LEADERBOARD_TBODY_IDS[groupKey]);
   if (!tbody) return;
   const sortKey = ROLE_LEADERBOARD_SORT_STATE[groupKey] || 'speed';
   const { rows: baseRows, timeOfDay } = computeRoleLeaderboardRows(dayLogs, groupKey);
   const rows = sortRoleLeaderboardRows(baseRows, sortKey);
+  ROLE_LEADERBOARD_LAST_ROWS[groupKey] = rows;
   renderIdleTimeOfDayAnalysis(groupKey, timeOfDay);
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-slate-500 italic">No personnel on file for this pool yet.</td></tr>`;
@@ -5276,6 +5305,86 @@ function renderAllRoleLeaderboards(dayLogs) {
 function setRoleLeaderboardSort(groupKey, key) {
   ROLE_LEADERBOARD_SORT_STATE[groupKey] = key;
   renderRoleLeaderboard(groupKey, _roleLeaderboardDayLogsCache);
+}
+
+// --- Role Leaderboard "Monthly Trend": takes whichever 5 personnel are
+// currently on top of a ranking board and plots their chosen metric across
+// every month of the selected year, so admin can see who's trending up/down
+// rather than just today's snapshot.
+const ROLE_LEADERBOARD_TREND_COLORS = ['#34d399', '#38bdf8', '#f472b6', '#fbbf24', '#a78bfa'];
+const ROLE_LEADERBOARD_TREND_METRIC_LABELS = { productivityPct: 'Productivity %', qty: 'Qty', avgSpeedPct: 'Speed %', idlePct: 'Idle %' };
+let _roleLeaderboardTrendLoading = {};
+
+function toggleRoleLeaderboardTrend(groupKey) {
+  const prefix = groupKey === 'PICK_GROUP' ? 'lb-pickgroup' : 'lb-checkgroup';
+  const wrap = document.getElementById(`${prefix}-trend-wrap`);
+  if (!wrap) return;
+  const opening = wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden');
+  if (opening) renderRoleLeaderboardTrend(groupKey);
+}
+
+async function renderRoleLeaderboardTrend(groupKey) {
+  const prefix = groupKey === 'PICK_GROUP' ? 'lb-pickgroup' : 'lb-checkgroup';
+  const wrap = document.getElementById(`${prefix}-trend-wrap`);
+  if (!wrap || wrap.classList.contains('hidden')) return; // don't fetch a year of data while collapsed
+  if (_roleLeaderboardTrendLoading[groupKey]) return;
+  _roleLeaderboardTrendLoading[groupKey] = true;
+
+  const metric = document.getElementById(`${prefix}-trend-metric`).value;
+  const topRows = (ROLE_LEADERBOARD_LAST_ROWS[groupKey] || []).filter(r => r.hasActivity).slice(0, 5);
+  if (!topRows.length) { _roleLeaderboardTrendLoading[groupKey] = false; return; }
+  const topNames = topRows.map(r => r.name);
+
+  const dateInput = document.getElementById('analytics-date');
+  const year = ((dateInput && dateInput.value) ? new Date(dateInput.value) : new Date()).getFullYear();
+  const yearStart = new Date(year, 0, 1, 0, 0, 0, 0);
+  const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+
+  let yearLogs;
+  try {
+    yearLogs = await fetchActivityLogsPaginated(q => q
+      .gte('start_time', yearStart.toISOString()).lte('start_time', yearEnd.toISOString())
+      .eq('status', 'Completed'), ANALYTICS_LOG_COLUMNS);
+  } catch (err) { console.error(err); _roleLeaderboardTrendLoading[groupKey] = false; return; }
+  yearLogs = (yearLogs || []).filter(l => !excludedPersonnelNames.has((l.personnel_name || '').trim()));
+
+  // Bucket by calendar month (matches the Month pill filter's own boundaries).
+  const monthLogs = Array.from({ length: 12 }, () => []);
+  yearLogs.forEach(l => {
+    const mIdx = new Date(l.start_time).getMonth();
+    if (mIdx >= 0 && mIdx < 12) monthLogs[mIdx].push(l);
+  });
+
+  const datasets = topNames.map((name, i) => {
+    const data = monthLogs.map(logs => {
+      const { rows } = computeRoleLeaderboardRows(logs, groupKey);
+      const r = rows.find(x => x.name === name);
+      return (r && r.hasActivity) ? (r[metric] || 0) : null;
+    });
+    return {
+      label: name,
+      data,
+      borderColor: ROLE_LEADERBOARD_TREND_COLORS[i % ROLE_LEADERBOARD_TREND_COLORS.length],
+      backgroundColor: ROLE_LEADERBOARD_TREND_COLORS[i % ROLE_LEADERBOARD_TREND_COLORS.length],
+      spanGaps: true,
+      tension: 0.3
+    };
+  });
+
+  upsertChart(`${prefix}-trend-chart`, {
+    type: 'line',
+    data: { labels: MONTH_PILL_NAMES, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 10 } } }, title: { display: true, text: `${ROLE_LEADERBOARD_TREND_METRIC_LABELS[metric]} — ${year}`, color: '#94a3b8', font: { size: 11 } } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' } },
+        y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e293b' }, beginAtZero: true }
+      }
+    }
+  });
+  _roleLeaderboardTrendLoading[groupKey] = false;
 }
 
 // --- Throughput Trend: lines completed per stage, per Activity Day, for the
