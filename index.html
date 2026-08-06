@@ -9,6 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -961,20 +962,36 @@
       </div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-1.5">
-      <label class="text-[11px] text-slate-400 font-semibold mr-1">Month</label>
-      <button type="button" onclick="setAnalyticsMonthPill(0, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Jan</button>
-      <button type="button" onclick="setAnalyticsMonthPill(1, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Feb</button>
-      <button type="button" onclick="setAnalyticsMonthPill(2, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Mar</button>
-      <button type="button" onclick="setAnalyticsMonthPill(3, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Apr</button>
-      <button type="button" onclick="setAnalyticsMonthPill(4, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">May</button>
-      <button type="button" onclick="setAnalyticsMonthPill(5, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Jun</button>
-      <button type="button" onclick="setAnalyticsMonthPill(6, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Jul</button>
-      <button type="button" onclick="setAnalyticsMonthPill(7, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Aug</button>
-      <button type="button" onclick="setAnalyticsMonthPill(8, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Sep</button>
-      <button type="button" onclick="setAnalyticsMonthPill(9, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Oct</button>
-      <button type="button" onclick="setAnalyticsMonthPill(10, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Nov</button>
-      <button type="button" onclick="setAnalyticsMonthPill(11, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Dec</button>
+    <div class="flex flex-wrap items-center justify-between gap-1.5">
+      <div class="flex flex-wrap items-center gap-1.5">
+        <label class="text-[11px] text-slate-400 font-semibold mr-1">Month</label>
+        <button type="button" onclick="setAnalyticsMonthPill(0, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Jan</button>
+        <button type="button" onclick="setAnalyticsMonthPill(1, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Feb</button>
+        <button type="button" onclick="setAnalyticsMonthPill(2, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Mar</button>
+        <button type="button" onclick="setAnalyticsMonthPill(3, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Apr</button>
+        <button type="button" onclick="setAnalyticsMonthPill(4, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">May</button>
+        <button type="button" onclick="setAnalyticsMonthPill(5, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Jun</button>
+        <button type="button" onclick="setAnalyticsMonthPill(6, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Jul</button>
+        <button type="button" onclick="setAnalyticsMonthPill(7, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Aug</button>
+        <button type="button" onclick="setAnalyticsMonthPill(8, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Sep</button>
+        <button type="button" onclick="setAnalyticsMonthPill(9, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Oct</button>
+        <button type="button" onclick="setAnalyticsMonthPill(10, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Nov</button>
+        <button type="button" onclick="setAnalyticsMonthPill(11, this)" class="analytics-month-pill text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">Dec</button>
+      </div>
+
+      <!-- Exclude Personnel: quick access to the same global exclude flag used
+           across every Analytics & Reports computation, without leaving this
+           tab. Toggling here calls the same togglePersonnelExcludedAll used in
+           Personnel & Breaks, so it stays in sync everywhere. -->
+      <div class="relative">
+        <button type="button" onclick="toggleAnalyticsExcludeMenu()" id="analytics-exclude-btn" class="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-rose-500/60 text-slate-300 hover:text-rose-300 flex items-center gap-1.5">
+          🚫 Exclude Personnel <span id="analytics-exclude-count" class="hidden text-[10px] bg-rose-600 text-white rounded-full px-1.5"></span>
+        </button>
+        <div id="analytics-exclude-menu" class="hidden absolute right-0 mt-1 w-64 max-h-80 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg shadow-xl z-20 p-2 space-y-1">
+          <p class="text-[10px] text-slate-500 px-1 pb-1">Excluded personnel are removed from every ranking, leaderboard, cycle-time, discrepancy, and throughput figure in Analytics &amp; Reports (and Performance Summary) — their raw logs are untouched.</p>
+          <div id="analytics-exclude-list" class="space-y-0.5"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Cycle Time by Stage -->
@@ -1086,24 +1103,31 @@
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h4 class="text-xs font-bold text-green-400 uppercase tracking-wider">🧺 Picking Operations Rankings <span class="text-slate-500 font-normal normal-case">(Picker + Puller)</span></h4>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-2">
+            <button onclick="captureElementAsImage('lb-pickgroup-capture', 'picking-operations-rankings')" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">📷 Capture Image</button>
             <label class="text-[10px] text-slate-500 font-semibold">Sort by</label>
             <select onchange="setRoleLeaderboardSort('PICK_GROUP', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-emerald-500">
               <option value="speed">Speed %</option><option value="qty">Qty</option><option value="productivity">Productivity</option><option value="idle">Idle</option>
             </select>
           </div>
         </div>
+        <div id="lb-pickgroup-capture">
         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950">
-          <table id="lb-pickgroup-table" class="w-full text-left text-xs border-collapse">
+          <table id="lb-pickgroup-table" class="w-full text-left text-xs border-collapse table-fixed">
+            <colgroup>
+              <col style="width:2.5rem"><col style="width:22%"><col style="width:8%"><col style="width:9%">
+              <col style="width:11%"><col style="width:8%"><col style="width:9%"><col style="width:7%"><col style="width:11%"><col style="width:9%">
+            </colgroup>
             <thead class="bg-slate-900 text-slate-400 border-b border-slate-800 font-medium">
               <tr>
-                <th class="p-2 text-center w-8">#</th><th class="p-2">Personnel</th><th class="p-2 text-right">Shipments</th><th class="p-2 text-right">Qty</th>
-                <th class="p-2 text-center">Hit/Miss</th><th class="p-2 text-right">Speed %</th>
-                <th class="p-2 text-right">Incident Miss %</th><th class="p-2 text-right">Idle %</th><th class="p-2 text-right">Idle Cause</th><th class="p-2 text-right">Productivity</th>
+                <th class="p-1.5 text-center">#</th><th class="p-1.5">Personnel</th><th class="p-1.5 text-right">Shipments</th><th class="p-1.5 text-right">Qty</th>
+                <th class="p-1.5 text-center">Hit/Miss</th><th class="p-1.5 text-right">Speed %</th>
+                <th class="p-1.5 text-right">Incident Miss %</th><th class="p-1.5 text-right">Idle %</th><th class="p-1.5 text-right">Idle Cause</th><th class="p-1.5 text-right">Productivity</th>
               </tr>
             </thead>
             <tbody id="lb-pickgroup-rows" class="divide-y divide-slate-800/50"></tbody>
           </table>
+        </div>
         </div>
         <div id="lb-pickgroup-timeanalysis" class="text-[11px] leading-relaxed text-slate-400 bg-slate-900/40 border border-slate-800 rounded-lg px-3 py-2"></div>
       </div>
@@ -1112,24 +1136,31 @@
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h4 class="text-xs font-bold text-sky-300 uppercase tracking-wider">🧾 Checking Operations Rankings <span class="text-slate-500 font-normal normal-case">(Staging Checker + Outbound Checker)</span></h4>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-2">
+            <button onclick="captureElementAsImage('lb-checkgroup-capture', 'checking-operations-rankings')" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">📷 Capture Image</button>
             <label class="text-[10px] text-slate-500 font-semibold">Sort by</label>
             <select onchange="setRoleLeaderboardSort('CHECK_GROUP', this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-[10px] focus:outline-none focus:border-emerald-500">
               <option value="speed">Speed %</option><option value="qty">Qty</option><option value="productivity">Productivity</option><option value="idle">Idle</option>
             </select>
           </div>
         </div>
+        <div id="lb-checkgroup-capture">
         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950">
-          <table id="lb-checkgroup-table" class="w-full text-left text-xs border-collapse">
+          <table id="lb-checkgroup-table" class="w-full text-left text-xs border-collapse table-fixed">
+            <colgroup>
+              <col style="width:2.5rem"><col style="width:22%"><col style="width:8%"><col style="width:9%">
+              <col style="width:11%"><col style="width:8%"><col style="width:9%"><col style="width:7%"><col style="width:11%"><col style="width:9%">
+            </colgroup>
             <thead class="bg-slate-900 text-slate-400 border-b border-slate-800 font-medium">
               <tr>
-                <th class="p-2 text-center w-8">#</th><th class="p-2">Personnel</th><th class="p-2 text-right">Shipments</th><th class="p-2 text-right">Qty</th>
-                <th class="p-2 text-center">Hit/Miss</th><th class="p-2 text-right">Speed %</th>
-                <th class="p-2 text-right">Incident Miss %</th><th class="p-2 text-right">Idle %</th><th class="p-2 text-right">Idle Cause</th><th class="p-2 text-right">Productivity</th>
+                <th class="p-1.5 text-center">#</th><th class="p-1.5">Personnel</th><th class="p-1.5 text-right">Shipments</th><th class="p-1.5 text-right">Qty</th>
+                <th class="p-1.5 text-center">Hit/Miss</th><th class="p-1.5 text-right">Speed %</th>
+                <th class="p-1.5 text-right">Incident Miss %</th><th class="p-1.5 text-right">Idle %</th><th class="p-1.5 text-right">Idle Cause</th><th class="p-1.5 text-right">Productivity</th>
               </tr>
             </thead>
             <tbody id="lb-checkgroup-rows" class="divide-y divide-slate-800/50"></tbody>
           </table>
+        </div>
         </div>
         <div id="lb-checkgroup-timeanalysis" class="text-[11px] leading-relaxed text-slate-400 bg-slate-900/40 border border-slate-800 rounded-lg px-3 py-2"></div>
       </div>
@@ -2120,7 +2151,51 @@ async function refreshExcludedPersonnel() {
   if (error) { console.error(error); return; }
   excludedPersonnelNames = new Set((data || []).filter(p => p.excluded).map(p => (p.name || '').trim()));
   dutyBackupNames = new Set((data || []).filter(p => p.duty_backup).map(p => (p.name || '').trim()));
+  refreshAnalyticsExcludeMenu();
 }
+
+// Populates the "Exclude Personnel" dropdown on the Analytics & Reports tab
+// with every distinct person on file and their current excluded state, and
+// keeps the badge count on the button in sync. Reuses togglePersonnelExcludedAll
+// (the same one Personnel & Breaks uses) so both stay consistent.
+async function refreshAnalyticsExcludeMenu() {
+  const list = document.getElementById('analytics-exclude-list');
+  const countBadge = document.getElementById('analytics-exclude-count');
+  if (!list) return; // Analytics tab not in the DOM yet
+  const { data, error } = await supabaseClient.from('personnel').select('name,excluded').order('name');
+  if (error) return console.error(error);
+  const byName = {};
+  (data || []).forEach(p => {
+    const key = (p.name || '').trim();
+    if (!key) return;
+    if (!(key in byName)) byName[key] = false;
+    if (p.excluded) byName[key] = true;
+  });
+  const names = Object.keys(byName).sort((a, b) => a.localeCompare(b));
+  list.innerHTML = names.length ? names.map(name => `
+    <label class="flex items-center gap-2 px-1 py-1 rounded hover:bg-slate-900 cursor-pointer select-none text-xs ${byName[name] ? 'text-rose-300' : 'text-slate-300'}">
+      <input type="checkbox" ${byName[name] ? 'checked' : ''} onchange="togglePersonnelExcludedAll('${name.replace(/'/g, "\\'")}', this.checked)" class="w-3.5 h-3.5 text-rose-600 bg-slate-900 border-slate-700 rounded focus:ring-rose-500">
+      ${name}
+    </label>`).join('') : '<p class="text-[11px] text-slate-600 italic px-1">No personnel on file yet.</p>';
+  const excludedCount = names.filter(n => byName[n]).length;
+  if (countBadge) {
+    if (excludedCount > 0) { countBadge.textContent = excludedCount; countBadge.classList.remove('hidden'); }
+    else countBadge.classList.add('hidden');
+  }
+}
+function toggleAnalyticsExcludeMenu() {
+  const menu = document.getElementById('analytics-exclude-menu');
+  if (!menu) return;
+  const opening = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden');
+  if (opening) refreshAnalyticsExcludeMenu();
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('analytics-exclude-menu');
+  const btn = document.getElementById('analytics-exclude-btn');
+  if (!menu || menu.classList.contains('hidden')) return;
+  if (!menu.contains(e.target) && !btn.contains(e.target)) menu.classList.add('hidden');
+});
 
 // --- STATUS CHAIN: each role (besides Picker) requires the prior role's
 // completion flag on the shipments row before a line becomes selectable, and
@@ -4593,6 +4668,7 @@ async function fetchActivityLogsPaginated(applyFilters, columns = '*') {
 const ANALYTICS_LOG_COLUMNS = 'personnel_name,role,start_time,end_time,so_number,shipment_no,total_qty,rendered_minutes,target_hours,discrepancy_qty,discrepancy_type';
 
 async function refreshAnalyticsView() {
+  refreshAnalyticsExcludeMenu();
   const dateInput = document.getElementById('analytics-date');
   if (dateInput && !dateInput.value) dateInput.value = defaultOperationalDateStr();
   const dateStr = dateInput ? dateInput.value : defaultOperationalDateStr();
@@ -4750,12 +4826,12 @@ function renderLeaderboard(logs) {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
     const color = r.productivityPct >= 100 ? 'text-emerald-400' : r.productivityPct >= 70 ? 'text-amber-400' : 'text-rose-400';
     return `<tr class="hover:bg-slate-900/40">
-      <td class="p-2 text-center font-bold">${medal}</td>
-      <td class="p-2 font-semibold text-slate-200">${r.name}</td>
+      <td class="p-1.5 text-center font-bold">${medal}</td>
+      <td class="p-1.5 font-semibold text-slate-200">${r.name}</td>
       <td class="p-2">${r.roles.map(rl => `<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold mr-1 ${roleBadgeClass(rl)}">${rl}</span>`).join('')}</td>
-      <td class="p-2 text-right font-mono text-amber-400">${fmtNum(r.volume)}</td>
-      <td class="p-2 text-right font-mono text-slate-300">${fmtNum(r.activeMinutes)}</td>
-      <td class="p-2 text-right font-mono font-semibold ${color}">${r.productivityPct.toFixed(1)}%</td>
+      <td class="p-1.5 text-right font-mono text-amber-400">${fmtNum(r.volume)}</td>
+      <td class="p-1.5 text-right font-mono text-slate-300">${fmtNum(r.activeMinutes)}</td>
+      <td class="p-1.5 text-right font-mono font-semibold ${color}">${r.productivityPct.toFixed(1)}%</td>
     </tr>`;
   }).join('');
 }
@@ -5636,6 +5712,38 @@ function exportTableToXLSXGeneric(tableId, filename, sheetName) {
 // the browser's native print pipeline — a print-only stylesheet (see <style>)
 // hides the sidebar/nav/chrome and isolates just the flagged section/table(s)
 // in a clean, high-contrast layout suitable for "Save as PDF".
+// Captures a DOM section (e.g. one ranking table) as a downloadable PNG image
+// — handy for pasting a ranking straight into a chat/email instead of a manual
+// screenshot. Uses html2canvas with the app's own dark background so the
+// captured image matches what's on screen instead of coming out white.
+async function captureElementAsImage(elementId, filename) {
+  const el = document.getElementById(elementId);
+  if (!el) return showToast("Could not find that section to capture.", "error");
+  if (typeof html2canvas === 'undefined') return showToast("Image capture library didn't load — check your internet connection and try again.", "error");
+  try {
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#020617', // slate-950, matches the app's dark theme
+      scale: 2, // sharper output for zooming/printing
+      useCORS: true
+    });
+    canvas.toBlob((blob) => {
+      if (!blob) return showToast("Could not generate the image.", "error");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("Image captured and downloaded.", "success");
+    }, 'image/png');
+  } catch (err) {
+    console.error(err);
+    showToast("Could not capture image: " + err.message, "error");
+  }
+}
+
 function exportSectionToPDF(sectionId) {
   document.querySelectorAll('.print-target').forEach(el => el.classList.remove('print-target'));
   const el = document.getElementById(sectionId);
