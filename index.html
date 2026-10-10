@@ -740,6 +740,7 @@
         <button class="tab-btn flex-1 px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition text-center whitespace-nowrap" data-view="workbench" onclick="setView('workbench')">Workbench</button>
         <button class="tab-btn flex-1 px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition text-center whitespace-nowrap" data-view="bulletin" onclick="setView('bulletin')">Performance Summary</button>
         <button class="tab-btn flex-1 px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition text-center whitespace-nowrap" data-view="analytics" onclick="setView('analytics')">Analytics &amp; Reports</button>
+        <button class="tab-btn flex-1 px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition text-center whitespace-nowrap" data-view="overtime" onclick="setView('overtime')">Overtime</button>
         <button class="tab-btn flex-1 px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition text-center whitespace-nowrap" data-view="ingestion" onclick="setView('ingestion')">Data Ingestion</button>
         <button class="tab-btn flex-1 px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition text-center whitespace-nowrap" data-view="admin" onclick="setView('admin')">Personnel &amp; Breaks</button>
         <button class="tab-btn flex-1 px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 transition text-center whitespace-nowrap" data-view="adminops" onclick="setView('adminops')">Admin</button>
@@ -1859,6 +1860,127 @@ SA03" class="w-full bg-slate-900 border border-slate-800 text-[11px] font-mono r
     </div>
   </section>
 
+  <!-- ================= OVERTIME ANALYSIS ================= -->
+  <section id="view-overtime" class="view space-y-5">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-bold text-slate-100">🌙 Overtime Incident Analysis</h2>
+        <p class="text-xs text-slate-400">Normal schedule: <span class="text-slate-300 font-semibold">AM 6:00 AM–3:00 PM</span> and <span class="text-slate-300 font-semibold">PM 3:00 PM–12:00 AM</span>. Any recorded work between <span class="text-amber-300 font-semibold">12:00 AM and 6:00 AM</span> is outside both shifts and counted as an overtime incident (one incident = one person on one calendar night). Grouped per month.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="text-[11px] text-slate-400 font-semibold">Year</label>
+        <select id="ot-year" onchange="refreshOvertimeView(true)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"></select>
+        <label class="text-[11px] text-slate-400 font-semibold">Role</label>
+        <select id="ot-role" onchange="renderOvertimeView()" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500">
+          <option value="ALL">All Roles</option>
+          <option value="Picker">Picker</option>
+          <option value="Staging Checker">Staging Checker</option>
+          <option value="Puller">Puller</option>
+          <option value="Outbound Checker">Outbound Checker</option>
+        </select>
+        <label class="text-[11px] text-slate-400 font-semibold" title="Ignore incidents shorter than this (minutes)">Min OT (min)</label>
+        <input type="number" id="ot-min" value="15" min="0" step="5" onchange="renderOvertimeView()" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs w-16 focus:outline-none focus:border-emerald-500">
+        <button onclick="refreshOvertimeView(true)" class="text-[10px] font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div id="ot-status" class="text-[11px] text-slate-500 italic"></div>
+
+    <div id="ot-kpis" class="grid grid-cols-2 lg:grid-cols-6 gap-3"></div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-2">
+      <h3 class="text-sm font-semibold tracking-wide uppercase text-slate-400">🔎 Analysis</h3>
+      <ul id="ot-insights" class="space-y-2 text-xs text-slate-300"></ul>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 bg-slate-950 border border-slate-800 rounded-xl p-4">
+        <div class="text-[11px] uppercase tracking-wide text-slate-500 mb-2">Overtime hours &amp; incidents per month</div>
+        <div class="relative h-64"><canvas id="ot-month-chart"></canvas></div>
+      </div>
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-4">
+        <div>
+          <div class="text-[11px] uppercase tracking-wide text-slate-500 mb-2">When in the night (OT hours by hour)</div>
+          <div class="relative h-28"><canvas id="ot-hour-chart"></canvas></div>
+        </div>
+        <div>
+          <div class="text-[11px] uppercase tracking-wide text-slate-500 mb-2">By weekday (OT hours)</div>
+          <div class="relative h-28"><canvas id="ot-weekday-chart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+        <h3 class="text-sm font-semibold tracking-wide uppercase text-slate-400">📅 Monthly Summary</h3>
+        <button onclick="exportTableToCSVGeneric('ot-month-table','overtime-monthly.csv')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">⬇ Export CSV</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table id="ot-month-table" class="w-full text-xs">
+          <thead class="bg-slate-900 text-[10px] uppercase tracking-wide text-slate-500">
+            <tr>
+              <th class="p-2 text-left">Month</th>
+              <th class="p-2 text-right">OT Incidents</th>
+              <th class="p-2 text-right">Nights w/ OT</th>
+              <th class="p-2 text-right">Personnel</th>
+              <th class="p-2 text-right">OT Hours</th>
+              <th class="p-2 text-right">Avg Min / Incident</th>
+              <th class="p-2 text-right">Lines</th>
+              <th class="p-2 text-right">Qty</th>
+              <th class="p-2 text-right">OT % of Work</th>
+              <th class="p-2 text-right">MoM Δ Hours</th>
+              <th class="p-2 text-right">Repeat (3+ nights)</th>
+              <th class="p-2 text-right" title="Duty Roster: reported OUT after the shift's scheduled end">Shift Overruns</th>
+              <th class="p-2 text-right">Overrun Hrs</th>
+            </tr>
+          </thead>
+          <tbody id="ot-month-rows" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+      <p class="px-4 py-2 text-[10px] text-slate-600">Incidents/hours come from completed task logs (rendered minutes prorated to the 12AM–6AM portion of each task). <span class="text-slate-500">Shift Overruns</span> come from the Duty Roster (OUT time later than the shift's scheduled end) and measure time on duty, so they are shown separately and not added to OT hours — the same person can appear in both. Click a month to filter the incident list below.</p>
+    </div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-800">
+        <h3 class="text-sm font-semibold tracking-wide uppercase text-slate-400">👥 Overtime Hours by Personnel &amp; Month</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table id="ot-matrix-table" class="w-full text-xs">
+          <thead id="ot-matrix-head" class="bg-slate-900 text-[10px] uppercase tracking-wide text-slate-500"></thead>
+          <tbody id="ot-matrix-rows" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-slate-800">
+        <h3 class="text-sm font-semibold tracking-wide uppercase text-slate-400">🧾 Incident List</h3>
+        <div class="flex items-center gap-2">
+          <select id="ot-detail-month" onchange="otSetDetailMonth(this.value)" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-emerald-500"></select>
+          <button onclick="exportTableToCSVGeneric('ot-detail-table','overtime-incidents.csv')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">⬇ Export CSV</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto max-h-[480px] overflow-y-auto">
+        <table id="ot-detail-table" class="w-full text-xs">
+          <thead class="bg-slate-900 text-[10px] uppercase tracking-wide text-slate-500 sticky top-0">
+            <tr>
+              <th class="p-2 text-left">Night (Date)</th>
+              <th class="p-2 text-left">Day</th>
+              <th class="p-2 text-left">Personnel</th>
+              <th class="p-2 text-left">Role(s)</th>
+              <th class="p-2 text-left">OT Window</th>
+              <th class="p-2 text-right">OT Min</th>
+              <th class="p-2 text-right">Tasks</th>
+              <th class="p-2 text-right">Lines</th>
+              <th class="p-2 text-right">Qty</th>
+            </tr>
+          </thead>
+          <tbody id="ot-detail-rows" class="divide-y divide-slate-800"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= USER MANAGEMENT ================= -->
   <section id="view-usermgmt" class="view space-y-4">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -2279,6 +2401,7 @@ const ALL_TABS = [
   { key: 'workbench', label: 'Workbench' },
   { key: 'bulletin', label: 'Performance Summary' },
   { key: 'analytics', label: 'Analytics & Reports' },
+  { key: 'overtime', label: 'Overtime Analysis' },
   { key: 'ingestion', label: 'Data Ingestion' },
   { key: 'admin', label: 'Personnel & Breaks' },
   { key: 'adminops', label: 'Admin' },
@@ -2560,12 +2683,416 @@ function activateView(name) {
   }
   if (name === 'bulletin') refreshBulletinBoard();
   if (name === 'analytics') refreshAnalyticsView();
+  if (name === 'overtime') refreshOvertimeView(false);
   if (name === 'admin') { refreshConfiguredBreaks(); refreshPersonnelAdminList(); refreshStagingAreaAdminList(); loadDutyShiftSchedules(); }
   if (name === 'adminops') { refreshPipelineSummary(); refreshDutyRoster(); renderTabOrderList(); }
   if (name === 'export') loadExportData();
   if (name === 'pending') loadPendingQueue();
   if (name === 'aging') { ensureAgingDefaultDateRange(); loadAgingData(); }
   if (name === 'usermgmt') loadUsers();
+}
+
+// =====================================================================
+// OVERTIME INCIDENT ANALYSIS (tab: "Overtime Analysis")
+//
+// Normal schedule is AM 6:00 AM–3:00 PM and PM 3:00 PM–12:00 AM, so the
+// only stretch of the day outside BOTH shifts is 12:00 AM–6:00 AM. Any
+// completed task time that falls in that window is overtime.
+//   • One INCIDENT = one person working inside that window on one
+//     calendar night (all their tasks that night roll into one incident).
+//   • A task's rendered_minutes is prorated by how much of its
+//     start→end span overlaps 12AM–6AM, so pauses/breaks stay excluded.
+//   • Rows sharing personnel + role + start_time are one batch (same
+//     dedupe rule as dedupeGroupMinutes) — counted once, lines summed.
+//   • Months use the calendar date of the overtime itself.
+// Shift overruns are a second, separate measure: duty_logs OUT time later
+// than the IN's scheduled_end (needs the Duty Roster tables; skipped
+// quietly if they don't exist).
+// =====================================================================
+const OT_ROLE_COLORS = { 'Picker': '#4ade80', 'Staging Checker': '#7dd3fc', 'Puller': '#f472b6', 'Outbound Checker': '#60a5fa' };
+const OT_NIGHT_END_HOUR = 6;       // 12AM–6AM is outside the AM (6–15) and PM (15–24) shifts
+const OT_MAX_TASK_HOURS = 16;      // a single task longer than this is treated as bad data and ignored
+const OT_MAX_OVERRUN_HOURS = 12;   // an OUT more than this past schedule is treated as a forgotten tap-out
+const OT_MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const OT_WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const OT_CACHE_MS = 5 * 60 * 1000;
+let otState = { year: null, groups: [], duty: [], dutyOk: true, dutyMsg: '', skipped: 0, fetchedAt: 0, loading: false, calc: null, detailMonth: 'ALL' };
+
+function otEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function otYmd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function otHM(d) { return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+function otHrs(min) { return (min / 60).toFixed(1); }
+function otPct(n, d) { return d > 0 ? (n / d) * 100 : 0; }
+
+// Pure computation (no DOM) — takes raw groups + duty rows and returns every aggregate the view needs.
+function otComputeFrom(groups, duty, opts) {
+  const { year, role, minOT } = opts;
+  const mk = () => ({ incidents: 0, otMin: 0, people: new Set(), nights: new Set(), lines: 0, qty: 0, activeMin: 0, overruns: 0, overrunMin: 0, personNights: new Map(), roleMin: {} });
+  const months = Array.from({ length: 12 }, mk);
+  const incMap = new Map();
+
+  groups.forEach(g => {
+    if (role !== 'ALL' && g.role !== role) return;
+    if (g.start.getFullYear() === year) months[g.start.getMonth()].activeMin += g.mins;
+    const totalMs = g.end - g.start;
+    if (totalMs <= 0) return;
+    let d = new Date(g.start.getFullYear(), g.start.getMonth(), g.start.getDate());
+    while (d < g.end) {
+      const ws = new Date(d); ws.setHours(0, 0, 0, 0);
+      const we = new Date(d); we.setHours(OT_NIGHT_END_HOUR, 0, 0, 0);
+      const s = Math.max(ws, g.start), e = Math.min(we, g.end);
+      if (e > s && d.getFullYear() === year) {
+        const segMin = g.mins * ((e - s) / totalMs);
+        const key = g.name + '|' + otYmd(d);
+        let inc = incMap.get(key);
+        if (!inc) { inc = { name: g.name, date: new Date(d), ymd: otYmd(d), roles: new Set(), roleMin: {}, otMin: 0, tasks: 0, lines: 0, qty: 0, first: new Date(s), last: new Date(e), hourMin: [0, 0, 0, 0, 0, 0] }; incMap.set(key, inc); }
+        inc.otMin += segMin; inc.tasks++; inc.lines += g.lines; inc.qty += g.qty; inc.roles.add(g.role);
+        inc.roleMin[g.role] = (inc.roleMin[g.role] || 0) + segMin;
+        if (s < inc.first) inc.first = new Date(s);
+        if (e > inc.last) inc.last = new Date(e);
+        for (let h = 0; h < OT_NIGHT_END_HOUR; h++) {
+          const hs = new Date(d); hs.setHours(h, 0, 0, 0);
+          const he = new Date(d); he.setHours(h + 1, 0, 0, 0);
+          const ov = Math.min(he, g.end) - Math.max(hs, g.start);
+          if (ov > 0) inc.hourMin[h] += g.mins * (ov / totalMs);
+        }
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  });
+
+  const incidents = [...incMap.values()].filter(i => i.otMin >= minOT && i.otMin > 0)
+    .sort((a, b) => b.date - a.date || a.name.localeCompare(b.name));
+  const hourMin = [0, 0, 0, 0, 0, 0], weekdayMin = [0, 0, 0, 0, 0, 0, 0], people = new Map();
+  incidents.forEach(i => {
+    const m = months[i.date.getMonth()];
+    m.incidents++; m.otMin += i.otMin; m.people.add(i.name); m.nights.add(i.ymd); m.lines += i.lines; m.qty += i.qty;
+    Object.entries(i.roleMin).forEach(([r, v]) => { m.roleMin[r] = (m.roleMin[r] || 0) + v; });
+    if (!m.personNights.has(i.name)) m.personNights.set(i.name, new Set());
+    m.personNights.get(i.name).add(i.ymd);
+    i.hourMin.forEach((v, h) => { hourMin[h] += v; });
+    weekdayMin[i.date.getDay()] += i.otMin;
+    const p = people.get(i.name) || { name: i.name, total: 0, byMonth: Array(12).fill(0), incidents: 0 };
+    p.total += i.otMin; p.byMonth[i.date.getMonth()] += i.otMin; p.incidents++;
+    people.set(i.name, p);
+  });
+  months.forEach(m => { m.repeat = [...m.personNights.values()].filter(s => s.size >= 3).length; });
+
+  // Shift overruns from duty_logs: pair each OUT with the preceding IN of the same person.
+  const overruns = [];
+  const byPerson = new Map();
+  (duty || []).forEach(r => { const k = (r.personnel_name || '').trim(); if (!k) return; (byPerson.get(k) || byPerson.set(k, []).get(k)).push(r); });
+  byPerson.forEach((evs, name) => {
+    evs.sort((a, b) => new Date(a.event_time) - new Date(b.event_time));
+    let open = null;
+    evs.forEach(ev => {
+      if (ev.event_type === 'IN') { open = ev; return; }
+      if (ev.event_type !== 'OUT' || !open) return;
+      const inT = new Date(open.event_time), outT = new Date(ev.event_time);
+      const sEnd = open.scheduled_end ? new Date(open.scheduled_end) : null;
+      const rl = open.role || ev.role || '';
+      const shiftName = open.shift_name || '—';
+      open = null;
+      if (!sEnd || isNaN(sEnd) || outT - inT > 20 * 3600000) return;
+      if (role !== 'ALL' && !rl.includes(role)) return;
+      const over = (outT - sEnd) / 60000;
+      if (over < Math.max(minOT, 1) || over > OT_MAX_OVERRUN_HOURS * 60) return;
+      if (inT.getFullYear() !== year) return;
+      overruns.push({ name, shift: shiftName, inT, outT, sEnd, over });
+    });
+  });
+  overruns.forEach(o => { const m = months[o.inT.getMonth()]; m.overruns++; m.overrunMin += o.over; });
+
+  return { incidents, months, hourMin, weekdayMin, people: [...people.values()].sort((a, b) => b.total - a.total), overruns };
+}
+
+async function otFetchDuty(from, to) {
+  const all = []; let off = 0;
+  while (true) {
+    const { data, error } = await supabaseClient.from('duty_logs')
+      .select('id,personnel_name,role,event_type,event_time,shift_name,scheduled_end')
+      .gte('event_time', from.toISOString()).lte('event_time', to.toISOString())
+      .in('event_type', ['IN', 'OUT']).order('id', { ascending: true }).range(off, off + 999);
+    if (error) return { ok: false, msg: error.message || 'duty_logs unavailable', rows: [] };
+    all.push(...(data || []));
+    if (!data || data.length < 1000) break;
+    off += 1000;
+  }
+  return { ok: true, rows: all.filter(r => !excludedPersonnelNames.has((r.personnel_name || '').trim())) };
+}
+
+async function refreshOvertimeView(force) {
+  const yearSel = document.getElementById('ot-year');
+  if (!yearSel) return;
+  if (!yearSel.options.length) {
+    const cy = new Date().getFullYear();
+    [cy, cy - 1, cy - 2].forEach(y => yearSel.add(new Option(String(y), String(y))));
+    yearSel.value = String(cy);
+  }
+  const year = parseInt(yearSel.value, 10);
+  if (otState.loading) return;
+  if (!force && otState.year === year && Date.now() - otState.fetchedAt < OT_CACHE_MS) { renderOvertimeView(); return; }
+  otState.loading = true;
+  const status = document.getElementById('ot-status');
+  if (status) status.textContent = `Loading ${year} activity logs…`;
+  try {
+    const from = new Date(year, 0, 0, 0, 0, 0, 0);            // Dec 31 of prior year, so a task running past midnight into Jan 1 is caught
+    const to = new Date(year, 11, 31, 23, 59, 59, 999);
+    const rows = await fetchActivityLogsPaginated(q => q
+      .gte('start_time', from.toISOString()).lte('start_time', to.toISOString())
+      .eq('status', 'Completed'), 'personnel_name,role,start_time,end_time,rendered_minutes,total_qty');
+    const map = new Map();
+    rows.forEach(l => {
+      const name = (l.personnel_name || '').trim();
+      if (!name || excludedPersonnelNames.has(name)) return;
+      const key = `${name}|${l.role}|${l.start_time}`;
+      let g = map.get(key);
+      if (!g) {
+        const start = new Date(l.start_time);
+        const rm = Number(l.rendered_minutes) || 0;
+        let end = l.end_time ? new Date(l.end_time) : null;
+        if (!end || isNaN(end)) end = rm > 0 ? new Date(start.getTime() + rm * 60000) : null;
+        g = { name, role: l.role, start, end, mins: rm, lines: 0, qty: 0 };
+        map.set(key, g);
+      }
+      g.lines++; g.qty += Number(l.total_qty) || 0;
+    });
+    let skipped = 0;
+    otState.groups = [...map.values()].filter(g => {
+      if (!g.end || isNaN(g.start) || isNaN(g.end) || g.end <= g.start) return false;
+      if (g.end - g.start > OT_MAX_TASK_HOURS * 3600000) { skipped++; return false; }
+      if (!(g.mins > 0)) g.mins = (g.end - g.start) / 60000;
+      return true;
+    });
+    otState.skipped = skipped;
+    const duty = await otFetchDuty(new Date(year, 0, 1), to);
+    otState.duty = duty.rows; otState.dutyOk = duty.ok; otState.dutyMsg = duty.msg || '';
+    otState.year = year; otState.fetchedAt = Date.now();
+  } catch (err) {
+    console.error('Overtime load failed', err);
+    if (status) status.innerHTML = `<span class="text-rose-400 not-italic">Failed to load: ${otEsc(err.message || err)}</span>`;
+    otState.loading = false;
+    return;
+  }
+  otState.loading = false;
+  renderOvertimeView();
+}
+
+function otBuildInsights(c, year) {
+  const out = [];
+  const totalMin = c.months.reduce((s, m) => s + m.otMin, 0);
+  const totalActive = c.months.reduce((s, m) => s + m.activeMin, 0);
+  const withOT = c.months.map((m, i) => i).filter(i => c.months[i].incidents > 0);
+  const withData = c.months.map((m, i) => i).filter(i => c.months[i].activeMin > 0);
+  if (!withData.length) return [{ ico: 'ℹ️', html: `No completed activity found for ${year}.` }];
+  if (!withOT.length) return [{ ico: '✅', html: `No overtime incidents (work between 12 AM and 6 AM) were recorded in ${year} with the current filters.` }];
+
+  const peak = withOT.reduce((a, b) => c.months[b].otMin > c.months[a].otMin ? b : a);
+  const avg = totalMin / withOT.length;
+  const above = avg > 0 ? ((c.months[peak].otMin - avg) / avg) * 100 : 0;
+  out.push({ ico: '📅', html: `<b class="text-slate-100">Peak month: ${OT_MONTHS_FULL[peak]}</b> — ${otHrs(c.months[peak].otMin)} OT hrs across ${c.months[peak].incidents} incidents${withOT.length > 1 ? ` (${above.toFixed(0)}% above the ${otHrs(avg)}-hr monthly average of months that had OT)` : ''}.` });
+
+  const lastIdx = withData[withData.length - 1];
+  if (lastIdx > 0) {
+    const cur = c.months[lastIdx].otMin, prev = c.months[lastIdx - 1].otMin;
+    if (prev > 0) {
+      const ch = ((cur - prev) / prev) * 100;
+      const cls = ch > 0 ? 'text-rose-400' : 'text-emerald-400';
+      out.push({ ico: ch > 0 ? '📈' : '📉', html: `<b class="text-slate-100">Latest trend:</b> ${OT_MONTHS_FULL[lastIdx]} OT is <span class="${cls} font-semibold">${ch > 0 ? 'up' : 'down'} ${Math.abs(ch).toFixed(0)}%</span> vs ${OT_MONTHS_FULL[lastIdx - 1]} (${otHrs(prev)} → ${otHrs(cur)} hrs)${lastIdx === new Date().getMonth() && year === new Date().getFullYear() ? ' — current month is still in progress.' : '.'}` });
+    } else if (cur > 0) {
+      out.push({ ico: '📈', html: `<b class="text-slate-100">Latest trend:</b> ${OT_MONTHS_FULL[lastIdx]} had ${otHrs(cur)} OT hrs after a clean ${OT_MONTHS_FULL[lastIdx - 1]} (no OT).` });
+    }
+  }
+
+  out.push({ ico: '⏱️', html: `<b class="text-slate-100">Share of workload:</b> overtime is ${otPct(totalMin, totalActive).toFixed(1)}% of all rendered work minutes in ${year}${(() => { const hi = withOT.reduce((a, b) => otPct(c.months[b].otMin, c.months[b].activeMin) > otPct(c.months[a].otMin, c.months[a].activeMin) ? b : a); return `; highest in ${OT_MONTHS_FULL[hi]} at ${otPct(c.months[hi].otMin, c.months[hi].activeMin).toFixed(1)}%`; })()}.` });
+
+  if (c.people.length) {
+    const t1 = c.people[0], top3 = c.people.slice(0, 3).reduce((s, p) => s + p.total, 0);
+    const p3 = otPct(top3, totalMin);
+    out.push({ ico: '👥', html: `<b class="text-slate-100">Who:</b> ${otEsc(t1.name)} logged the most OT (${otHrs(t1.total)} hrs, ${otPct(t1.total, totalMin).toFixed(0)}% of total over ${t1.incidents} night${t1.incidents > 1 ? 's' : ''}). Top ${Math.min(3, c.people.length)} account for ${p3.toFixed(0)}% of all OT hours${c.people.length > 3 && p3 >= 60 ? ' — concentrated on a few people, worth reviewing coverage or rotation.' : '.'} ${c.people.length} people in total had at least one OT night.` });
+  }
+
+  const roleTot = {};
+  c.months.forEach(m => Object.entries(m.roleMin).forEach(([r, v]) => { roleTot[r] = (roleTot[r] || 0) + v; }));
+  const roleSorted = Object.entries(roleTot).sort((a, b) => b[1] - a[1]);
+  if (roleSorted.length > 1) out.push({ ico: '🧩', html: `<b class="text-slate-100">By role:</b> ${roleSorted.map(([r, v]) => `${otEsc(r)} ${otPct(v, totalMin).toFixed(0)}%`).join(' · ')} of OT hours.` });
+
+  const early = c.hourMin.slice(0, 3).reduce((a, b) => a + b, 0), late = c.hourMin.slice(3).reduce((a, b) => a + b, 0);
+  const peakHour = c.hourMin.indexOf(Math.max(...c.hourMin));
+  const hLabel = h => `${h === 0 ? 12 : h}:00 ${h < 12 ? 'AM' : 'PM'}`;
+  out.push({ ico: '🌙', html: `<b class="text-slate-100">Time of night:</b> ${otPct(early, totalMin).toFixed(0)}% of OT falls 12–3 AM (PM shift running past midnight) and ${otPct(late, totalMin).toFixed(0)}% falls 3–6 AM (work starting before the 6 AM shift). Busiest hour: ${hLabel(peakHour)}.` });
+
+  const pwd = c.weekdayMin.indexOf(Math.max(...c.weekdayMin));
+  out.push({ ico: '🗓️', html: `<b class="text-slate-100">Weekday:</b> ${OT_WEEKDAYS[pwd]} nights carry the most OT (${otPct(c.weekdayMin[pwd], totalMin).toFixed(0)}% of hours).` });
+
+  const repeat = c.months.reduce((s, m) => s + m.repeat, 0);
+  if (repeat > 0) out.push({ ico: '🔁', html: `<b class="text-slate-100">Repeat OT:</b> ${repeat} person-month${repeat > 1 ? 's' : ''} had overtime on 3 or more separate nights — a sign of recurring workload rather than one-off incidents.` });
+
+  const clean = withData.filter(i => c.months[i].incidents === 0);
+  if (clean.length && withOT.length) out.push({ ico: '✅', html: `<b class="text-slate-100">Clean months:</b> ${clean.map(i => OT_MONTHS_FULL[i]).join(', ')} had no OT.` });
+
+  if (!otState.dutyOk) out.push({ ico: '⚠️', html: `Shift-overrun columns are blank because the Duty Roster data couldn't be read (${otEsc(otState.dutyMsg)}).` });
+  else if (c.overruns.length) {
+    const avgOver = c.overruns.reduce((s, o) => s + o.over, 0) / c.overruns.length;
+    const byShift = {}; c.overruns.forEach(o => { byShift[o.shift] = (byShift[o.shift] || 0) + 1; });
+    const topShift = Object.entries(byShift).sort((a, b) => b[1] - a[1])[0];
+    out.push({ ico: '🕒', html: `<b class="text-slate-100">Shift overruns:</b> ${c.overruns.length} tap-out${c.overruns.length > 1 ? 's' : ''} happened after the scheduled shift end (avg ${avgOver.toFixed(0)} min late); most on the <b>${otEsc(topShift[0])}</b> shift (${topShift[1]}).` });
+  }
+  if (otState.skipped > 0) out.push({ ico: '🧹', html: `${otState.skipped} task record${otState.skipped > 1 ? 's' : ''} longer than ${OT_MAX_TASK_HOURS} hrs were ignored as likely data errors.` });
+  return out;
+}
+
+function renderOvertimeView() {
+  if (!document.getElementById('ot-kpis')) return;
+  if (otState.year == null) return;
+  const role = document.getElementById('ot-role').value;
+  const minOT = Math.max(0, parseFloat(document.getElementById('ot-min').value) || 0);
+  const year = otState.year;
+  const c = otComputeFrom(otState.groups, otState.duty, { year, role, minOT });
+  otState.calc = c;
+
+  document.getElementById('ot-status').textContent = `${year} · ${otState.groups.length.toLocaleString()} task batches scanned · ${new Date(otState.fetchedAt).toLocaleTimeString()}`;
+
+  const totalMin = c.months.reduce((s, m) => s + m.otMin, 0);
+  const totalActive = c.months.reduce((s, m) => s + m.activeMin, 0);
+  const totalInc = c.incidents.length;
+  const nights = new Set(c.incidents.map(i => i.ymd)).size;
+  const peopleN = c.people.length;
+  const withOT = c.months.map((m, i) => i).filter(i => c.months[i].incidents > 0);
+  const peak = withOT.length ? withOT.reduce((a, b) => c.months[b].otMin > c.months[a].otMin ? b : a) : -1;
+  const tile = (label, value, sub, cls) => `<div class="bg-slate-950 border border-slate-800 rounded-xl p-3"><div class="text-[10px] uppercase tracking-wide text-slate-500">${label}</div><div class="text-xl font-bold font-mono ${cls || 'text-slate-100'}">${value}</div><div class="text-[10px] text-slate-500">${sub}</div></div>`;
+  document.getElementById('ot-kpis').innerHTML =
+    tile('OT Incidents', totalInc, `${nights} nights affected`, 'text-amber-300') +
+    tile('OT Hours', otHrs(totalMin), `${(totalInc ? totalMin / totalInc : 0).toFixed(0)} min avg / incident`, 'text-rose-400') +
+    tile('Personnel', peopleN, 'with ≥1 OT night') +
+    tile('OT % of Work', otPct(totalMin, totalActive).toFixed(1) + '%', 'of rendered minutes') +
+    tile('Peak Month', peak >= 0 ? MONTH_PILL_NAMES[peak] : '—', peak >= 0 ? `${otHrs(c.months[peak].otMin)} hrs · ${c.months[peak].incidents} incidents` : 'no OT recorded', 'text-emerald-400') +
+    tile('Shift Overruns', otState.dutyOk ? c.overruns.length : 'n/a', otState.dutyOk ? 'tap-outs after scheduled end' : 'Duty Roster unavailable');
+
+  document.getElementById('ot-insights').innerHTML = otBuildInsights(c, year)
+    .map(i => `<li class="flex gap-2"><span class="shrink-0">${i.ico}</span><span class="leading-relaxed">${i.html}</span></li>`).join('');
+
+  // Monthly table
+  const todayM = new Date().getMonth(), thisYear = new Date().getFullYear();
+  let prevMin = null;
+  document.getElementById('ot-month-rows').innerHTML = c.months.map((m, i) => {
+    const future = year === thisYear && i > todayM;
+    const noData = m.activeMin === 0 && m.incidents === 0;
+    let delta = '<span class="text-slate-600">—</span>';
+    if (!noData && prevMin !== null) {
+      if (prevMin > 0) { const ch = ((m.otMin - prevMin) / prevMin) * 100; delta = `<span class="${ch > 0 ? 'text-rose-400' : ch < 0 ? 'text-emerald-400' : 'text-slate-500'}">${ch > 0 ? '▲' : ch < 0 ? '▼' : ''} ${Math.abs(ch).toFixed(0)}%</span>`; }
+      else if (m.otMin > 0) delta = '<span class="text-rose-400">▲ new</span>';
+    }
+    if (!noData) prevMin = m.otMin;
+    const dim = future || noData ? 'opacity-40' : '';
+    const sel = otState.detailMonth === String(i) ? 'bg-slate-900/80' : '';
+    return `<tr onclick="otSetDetailMonth('${i}')" class="cursor-pointer hover:bg-slate-900/60 ${sel} ${dim}">
+      <td class="p-2 font-semibold text-slate-200">${OT_MONTHS_FULL[i]}</td>
+      <td class="p-2 text-right font-mono ${m.incidents ? 'text-amber-300' : 'text-slate-500'}">${m.incidents}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${m.nights.size}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${m.people.size}</td>
+      <td class="p-2 text-right font-mono ${m.otMin ? 'text-rose-400 font-bold' : 'text-slate-500'}">${otHrs(m.otMin)}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${m.incidents ? (m.otMin / m.incidents).toFixed(0) : '—'}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${m.lines}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${Math.round(m.qty).toLocaleString()}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${m.activeMin ? otPct(m.otMin, m.activeMin).toFixed(1) + '%' : '—'}</td>
+      <td class="p-2 text-right font-mono">${delta}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${m.repeat}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${otState.dutyOk ? m.overruns : '—'}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${otState.dutyOk ? otHrs(m.overrunMin) : '—'}</td>
+    </tr>`;
+  }).join('') + `<tr class="bg-slate-900 font-bold">
+      <td class="p-2 text-slate-200">Total ${year}</td>
+      <td class="p-2 text-right font-mono text-amber-300">${totalInc}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${nights}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${peopleN}</td>
+      <td class="p-2 text-right font-mono text-rose-400">${otHrs(totalMin)}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${totalInc ? (totalMin / totalInc).toFixed(0) : '—'}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${c.months.reduce((s, m) => s + m.lines, 0)}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${Math.round(c.months.reduce((s, m) => s + m.qty, 0)).toLocaleString()}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${totalActive ? otPct(totalMin, totalActive).toFixed(1) + '%' : '—'}</td>
+      <td class="p-2 text-right font-mono text-slate-500">—</td>
+      <td class="p-2 text-right font-mono text-slate-200">${c.months.reduce((s, m) => s + m.repeat, 0)}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${otState.dutyOk ? c.overruns.length : '—'}</td>
+      <td class="p-2 text-right font-mono text-slate-200">${otState.dutyOk ? otHrs(c.months.reduce((s, m) => s + m.overrunMin, 0)) : '—'}</td>
+    </tr>`;
+
+  // Charts
+  const roleKeys = Object.keys(OT_ROLE_COLORS).filter(r => c.months.some(m => (m.roleMin[r] || 0) > 0));
+  upsertChart('ot-month-chart', {
+    type: 'bar',
+    data: {
+      labels: MONTH_PILL_NAMES,
+      datasets: [
+        ...roleKeys.map(r => ({ type: 'bar', label: r + ' (hrs)', data: c.months.map(m => +((m.roleMin[r] || 0) / 60).toFixed(2)), backgroundColor: OT_ROLE_COLORS[r], stack: 'hrs', yAxisID: 'y' })),
+        { type: 'line', label: 'Incidents', data: c.months.map(m => m.incidents), borderColor: '#fbbf24', backgroundColor: '#fbbf24', tension: 0.3, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 10 } } } },
+      scales: {
+        x: { ...CHART_AXIS_OPTS, stacked: true },
+        y: { ...CHART_AXIS_OPTS, stacked: true, beginAtZero: true, title: { display: true, text: 'OT hours', color: '#647089', font: { size: 9 } } },
+        y1: { position: 'right', beginAtZero: true, ticks: { color: '#fbbf24', font: { size: 9 }, precision: 0 }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Incidents', color: '#fbbf24', font: { size: 9 } } }
+      }
+    }
+  });
+  upsertChart('ot-hour-chart', {
+    type: 'bar',
+    data: { labels: ['12–1 AM', '1–2', '2–3', '3–4', '4–5', '5–6'], datasets: [{ data: c.hourMin.map(v => +(v / 60).toFixed(2)), backgroundColor: '#a78bfa' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: CHART_AXIS_OPTS, y: { ...CHART_AXIS_OPTS, beginAtZero: true } } }
+  });
+  upsertChart('ot-weekday-chart', {
+    type: 'bar',
+    data: { labels: OT_WEEKDAYS, datasets: [{ data: c.weekdayMin.map(v => +(v / 60).toFixed(2)), backgroundColor: '#f59e0b' }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: CHART_AXIS_OPTS, y: { ...CHART_AXIS_OPTS, beginAtZero: true } } }
+  });
+
+  // Personnel × month matrix (hours)
+  document.getElementById('ot-matrix-head').innerHTML = `<tr><th class="p-2 text-left">Personnel</th>${MONTH_PILL_NAMES.map(n => `<th class="p-2 text-right">${n}</th>`).join('')}<th class="p-2 text-right">Total hrs</th><th class="p-2 text-right">Nights</th></tr>`;
+  const maxCell = Math.max(1, ...c.people.flatMap(p => p.byMonth));
+  const topPeople = c.people.slice(0, 20);
+  document.getElementById('ot-matrix-rows').innerHTML = topPeople.length ? topPeople.map(p => `<tr>
+      <td class="p-2 font-semibold text-slate-200 whitespace-nowrap">${otEsc(p.name)}</td>
+      ${p.byMonth.map(v => `<td class="p-2 text-right font-mono" style="${v > 0 ? `background:rgba(244,63,94,${(0.12 + 0.55 * v / maxCell).toFixed(2)})` : ''}">${v > 0 ? otHrs(v) : '<span class="text-slate-700">·</span>'}</td>`).join('')}
+      <td class="p-2 text-right font-mono font-bold text-rose-400">${otHrs(p.total)}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${p.incidents}</td>
+    </tr>`).join('') + (c.people.length > 20 ? `<tr><td colspan="15" class="p-2 text-center text-[10px] text-slate-600 italic">Showing top 20 of ${c.people.length} personnel.</td></tr>` : '')
+    : `<tr><td colspan="15" class="p-6 text-center text-slate-500 italic">No overtime incidents with the current filters.</td></tr>`;
+
+  // Detail month dropdown + list
+  const dsel = document.getElementById('ot-detail-month');
+  dsel.innerHTML = `<option value="ALL">All months</option>` + OT_MONTHS_FULL.map((n, i) => `<option value="${i}">${n} (${c.months[i].incidents})</option>`).join('');
+  dsel.value = otState.detailMonth;
+  renderOvertimeDetail();
+}
+
+function otSetDetailMonth(v) {
+  otState.detailMonth = String(v);
+  const sel = document.getElementById('ot-detail-month');
+  if (sel) sel.value = otState.detailMonth;
+  renderOvertimeView();
+}
+
+function renderOvertimeDetail() {
+  const c = otState.calc;
+  if (!c) return;
+  const list = otState.detailMonth === 'ALL' ? c.incidents : c.incidents.filter(i => String(i.date.getMonth()) === otState.detailMonth);
+  const tbody = document.getElementById('ot-detail-rows');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-500 italic">No overtime incidents for this selection.</td></tr>`; return; }
+  const CAP = 500;
+  tbody.innerHTML = list.slice(0, CAP).map(i => `<tr class="hover:bg-slate-900/40">
+      <td class="p-2 font-mono text-slate-300">${i.ymd}</td>
+      <td class="p-2 text-slate-400">${OT_WEEKDAYS[i.date.getDay()]}</td>
+      <td class="p-2 font-semibold text-slate-200">${otEsc(i.name)}</td>
+      <td class="p-2 text-slate-400">${[...i.roles].map(otEsc).join(', ')}</td>
+      <td class="p-2 font-mono text-slate-400">${otHM(i.first)} – ${otHM(i.last)}</td>
+      <td class="p-2 text-right font-mono text-rose-400 font-bold">${i.otMin.toFixed(0)}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${i.tasks}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${i.lines}</td>
+      <td class="p-2 text-right font-mono text-slate-300">${Math.round(i.qty).toLocaleString()}</td>
+    </tr>`).join('') + (list.length > CAP ? `<tr><td colspan="9" class="p-2 text-center text-[10px] text-slate-600 italic">Showing first ${CAP} of ${list.length} — pick a month to narrow.</td></tr>` : '');
 }
 
 // --- USER MANAGEMENT: CRUD against the `users` table ---
